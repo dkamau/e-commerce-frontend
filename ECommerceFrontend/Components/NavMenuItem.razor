@@ -1,0 +1,19 @@
+﻿<li class="nav-item">
+    <NavLink class="nav-link" href="@LinkTo">
+        <i class="nav-icon fas fa-@Icon"></i>
+        <p>
+            @Label
+        </p>
+    </NavLink>
+</li>
+
+@code {
+    [Parameter]
+    public string LinkTo { get; set; } = "/";
+
+    [Parameter]
+    public string Label { get; set; } = "Dashboard";
+
+    [Parameter]
+    public string Icon { get; set; } = "circle";
+}

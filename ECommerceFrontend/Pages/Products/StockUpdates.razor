@@ -1,0 +1,156 @@
+﻿@page "/admin/products/stockupdates/{id:int}"
+@using ECommerceFrontend.Enums
+@using Humanizer 
+@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ProductService _productService
+@inject ProductStockUpdateService _productStockUpdateService
+@inject NavigationManager _navigationManager
+@inject ToastService _toastService
+
+<div class="row">
+    <div class="col">
+        <div class="card card-outline card-info scrollable-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-list  mr-2" />
+                    <span>@product.Name</span>
+                </h3>
+                <div class="card-tools">
+                    @*<button type="button" class="btn btn-tool" data-card-widget="maximize">
+                        <i class="fas fa-expand"></i>
+                    </button>*@
+                    <a href="admin/products/" class="btn btn-tool">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body p-0">
+                <div class="scrollable-content p-0">
+                    <table class="table table-striped table-hover table-head-fixed table-sm">
+                        <thead>
+                            <tr>
+                                <th width="2px"></th>
+                                <th>Date</th>
+                                <th class="text-right">Qty</th>
+                                <th class="text-right">Amount</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+
+                        </thead>
+                        <tbody>
+                            @foreach (var productStockUpdate in productStockUpdates)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-@(productStockUpdate.ProductStockUpdateType == ProductStockUpdateType.Addition ? "plus-square text-success" : "minus-square text-danger") mr-2"></i>
+                                    </td>
+                                    <td>
+                                        <div class="truncate-ellipsis">
+                                            <span>@string.Format("{0:dd-MMM-yyyy}", productStockUpdate.DateCreated)</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-right">
+                                        @string.Format("{0:n0}", productStockUpdate.Quantity)
+                                    </td>
+                                    <td class="text-right">
+                                        @string.Format("{0:n0}/=", productStockUpdate.Price)
+                                    </td>
+                                    <td class="text-right">
+                                        <span class="badge @(productStockUpdate.ProductStockUpdateType == ProductStockUpdateType.Addition ? "bg-success" : "bg-danger") text-nowrap text-right">@string.Format("{0:n0}/=", productStockUpdate.Total)</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <div class="row">
+                    <div class="col">
+                        <div class="description-block border-right">
+                            <span class="description-percentage text-success text-nowrap"><i class="fas fa-plus-square"></i> In</span>
+                            <h5 class="description-header">@string.Format("{0:n0}", totalIn)</h5>
+                        </div>
+                        <!-- /.description-block -->
+                    </div>
+                    <!-- /.col -->
+                    <div class="col">
+                        <div class="description-block border-right text-nowrap">
+                            <span class="description-percentage text-danger"><i class="fas fa-minus-square"></i> Out</span>
+                            <h5 class="description-header">@string.Format("{0:n0}", totalOut)</h5>
+                        </div>
+                        <!-- /.description-block -->
+                    </div>
+                    <!-- /.col -->
+                    <div class="col">
+                        <div class="description-block">
+                            <span class="description-percentage text-primary text-nowrap"><i class="fas fa-cubes"></i> Stock</span>
+                            <h5 class="description-header">@string.Format("{0:n0}", balance)</h5>
+                        </div>
+                        <!-- /.description-block -->
+                    </div>
+                </div>
+                <!-- /.row -->
+            </div>
+
+            @if (loading)
+            {
+                <div class="overlay lightblue"><i class="fas fa-2x fa-sync-alt fa-spin"></i></div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private bool loading = true;
+    private Product product = new();
+    private List<ProductStockUpdate> productStockUpdates = new();
+    private decimal totalIn;
+    private decimal totalOut;
+    private decimal balance;
+
+    private CurrentUser loggedInUser = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user.Success)
+        {
+            loggedInUser = user.Value;
+        }
+
+        ProductHttpResult productHttpResult = await _productService.GetAsync(Id);
+
+        if (productHttpResult.Success)
+        {
+            product = productHttpResult.Product;
+            await ListProductStockUpdate();
+        }
+        else
+            await _toastService.ShowToastAsync(productHttpResult.Message, ToastType.Error);
+    }
+
+    private async Task ListProductStockUpdate()
+    {
+        ProductStockUpdateHttpResult productStockUpdateHttpResult = await _productStockUpdateService.ListAsync(product.Id);
+
+        if (productStockUpdateHttpResult.Success)
+        {
+            productStockUpdates = productStockUpdateHttpResult.ProductStockUpdates;
+            totalIn = (int)productStockUpdates.Where(n => n.ProductStockUpdateType == ProductStockUpdateType.Addition).Sum(n => n.Quantity);
+            totalOut = (int)productStockUpdates.Where(n => n.ProductStockUpdateType == ProductStockUpdateType.Deduction).Sum(n => n.Quantity);
+            balance = totalIn - totalOut;
+        }
+        else
+        {
+            await _toastService.ShowToastAsync(productStockUpdateHttpResult.Message, ToastType.Error);
+        }
+
+        loading = false;
+    }
+}

@@ -1,0 +1,37 @@
+@using ECommerceFrontend.Components;
+@inject NavigationManager _navigationManager
+
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="@typeof(MainLayout)">
+            <NotAuthorized>
+                @{
+                    var returnUrl = _navigationManager.ToBaseRelativePath(_navigationManager.Uri);
+                    <RedirectToLogin ReturnUrl="@returnUrl"></RedirectToLogin>
+                }
+
+            </NotAuthorized>
+            <Authorizing>
+                <p></p>
+            </Authorizing>
+        </AuthorizeRouteView>
+    </Found>
+    <NotFound>
+        <CascadingAuthenticationState>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <div class="error-page">
+                    <h2 class="headline text-warning"> 404</h2>
+                    <div class="error-content">
+                        <h3><i class="fas fa-exclamation-triangle text-warning"></i> Oops! Page not found.</h3>
+
+                        <p class="text-justify">
+                            We could not find the page you were looking for. Either it's still under construction on it just does't exist.
+                            Please <a href="/">Return to the dashboard</a> and have a great day. Thank you very much.
+                        </p>
+                    </div>
+                    <!-- /.error-content -->
+                </div>
+            </LayoutView>
+        </CascadingAuthenticationState>
+    </NotFound>
+</Router>

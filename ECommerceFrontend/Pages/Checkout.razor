@@ -1,0 +1,199 @@
+﻿@page "/checkout"
+@inject JSService _jsService
+@inject ProtectedLocalStorage  _protectedLocalStorage
+@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject CheckoutService _checkoutService
+@inject NavigationManager _navigationManager
+@inject ToastService _toastService
+
+<div class="container">
+    <div class="py-5 text-center">
+        <img class="d-block mx-auto mb-4" src="/dist/img/bet-shop-logo.png" alt="" width="72" height="72">
+        <h2>Checkout form</h2>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 order-md-2 mb-4">
+            <h4 class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted">Your cart</span>
+                <span class="badge badge-warning badge-pill">@cartItems.Count</span>
+            </h4>
+            <ul class="list-group mb-3">
+                @foreach (var item in cartItems)
+                {
+                    <li class="list-group-item d-flex justify-content-between lh-condensed">
+                        <div>
+                            <h6 class="my-0">@item.Name</h6>
+                            <small class="text-muted">@item.Description</small>
+                        </div>
+                        <span class="text-muted">
+                            @string.Format("Kes. {0:N2}", item.SellingPrice)
+                            &nbsp;<a class="btn btn-xs btn-danger" @onclick="() => RemoveChartItem(item.Name)"><i class="fa fa-times"></i></a>
+                        </span>
+
+                    </li>
+                }
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Total (KES)</span>
+                    <strong>@string.Format("Kes. {0:N2}/=", cartItems.Sum(n => n.SellingPrice))</strong>
+                </li>
+            </ul>
+        </div>
+        <div class="col-md-8 order-md-1">
+            <h4 class="mb-3">Shipping address</h4>
+            @*<form class="needs-validation" novalidate>*@
+            <EditForm Model="@order" OnValidSubmit="@CreateOrder">
+                <DataAnnotationsValidator />
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="firstName">First name</label>
+                        <InputText @bind-Value="order.FirstName" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => order.FirstName)" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName">Last name</label>
+                        <InputText @bind-Value="order.LastName" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => order.LastName)" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="firstName">Email</label>
+                        <InputText @bind-Value="order.Email" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => order.Email)" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName">Phone Number</label>
+                        <InputText @bind-Value="order.PhoneNumber" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => order.PhoneNumber)" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="firstName">Address</label>
+                        <InputText @bind-Value="order.Address1" class="form-control" placeholder="1234 Main St" />
+                        <ValidationMessage For="@(() => order.Address1)" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName">Address Two</label>
+                        <InputText @bind-Value="order.Address2" class="form-control" placeholder="Apartment or suite" />
+                        <ValidationMessage For="@(() => order.Address2)" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <label for="country">Zipcode</label>
+                        <InputText @bind-Value="order.ZipCode" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => order.ZipCode)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="state">Town</label>
+                        <InputText @bind-Value="order.Town" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => order.Town)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="zip">Country</label>
+                        <InputText @bind-Value="order.Country" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => order.Country)" />
+                    </div>
+                </div>
+                <hr class="mb-4">
+                <div class="custom-control custom-checkbox">
+                    <InputCheckbox @bind-Value="order.ShippingIsSameAsBilling" type="checkbox" class="custom-control-input" id="same-address" checked="" />
+                    <label class="custom-control-label" for="same-address">Shipping address is the same as my billing address</label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                    <InputCheckbox @bind-Value="order.SaveInfo" type="checkbox" class="custom-control-input" id="save-info" checked="" />
+                    <label class="custom-control-label" for="save-info">Save this information for next time</label>
+                </div>
+                <hr class="mb-4">
+
+                <h4 class="mb-3">Payment</h4>
+
+                <div class="d-block my-3">
+                    <label>* Payment will be done on delivey</label>
+                </div>
+
+
+                <hr class="mb-4">
+                <button class="btn btn-primary btn-lg btn-block" type="submit" disabled="@(cartItems.Count <= 0)">
+                    @if (loading)
+                    {
+                        <i class="fas fa-spinner fa-spin"></i>
+                    }
+                    else
+                    {
+                        <span>Place Order</span>
+                    }
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private CurrentUser loggedInUser = new();
+
+    private bool loading = false;
+    private Order order = new();
+    List<Product> cartItems = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user.Success)
+        {
+            loggedInUser = user.Value;
+            order.UserId = loggedInUser.UserId;
+            order.FirstName = loggedInUser.FirstName;
+            order.LastName = loggedInUser.LastName;
+            order.Email = loggedInUser.Email;
+        }
+
+        await GetChartItems();
+    }
+
+    public async Task GetChartItems()
+    {
+        var selectedCartItems = await _protectedLocalStorage.GetAsync<List<Product>>(StorageConstants.CartItems);
+        if (selectedCartItems.Success)
+        {
+            cartItems = selectedCartItems.Value;
+        }
+    }
+
+    public async Task RemoveChartItem(string name)
+    {
+        var item = cartItems.Where(n => n.Name == name).FirstOrDefault();
+        cartItems.Remove(item);
+        await _jsService.RemoveItemFromCart();
+        await _protectedLocalStorage.SetAsync(StorageConstants.CartItems, cartItems);
+    }
+
+    private async Task CreateOrder()
+    {
+        loading = true;
+
+        order.Products = cartItems;
+        OrderHttpResult orderHttpResult = await _checkoutService.CreateAsync(order);
+
+        if (orderHttpResult.Success)
+        {
+            _navigationManager.NavigateTo("/");
+            await _toastService.ShowToastAsync($"Your order has been placed successfully.\nPlease check your email for the order number and order details.", ToastType.Success);
+            await _jsService.RemoveItemFromCart(cartItems.Count);
+            await _protectedLocalStorage.SetAsync(StorageConstants.CartItems, new List<Product>());
+        }
+        else
+        {
+            await _toastService.ShowToastAsync(orderHttpResult.Message, ToastType.Error);
+        }
+
+        loading = false;
+    }
+}

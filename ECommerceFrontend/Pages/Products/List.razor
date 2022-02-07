@@ -1,0 +1,198 @@
+﻿@page "/admin/products"
+@inject ProductService _productService;
+@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ToastService _toastService
+
+<div class="row">
+    <div class="col-12">
+        <div class="card scrollable-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-cubes mr-2" />
+                </h3>
+                <div class="card-tools float-left">
+                    <div class="input-group input-group-sm" style="width: 150px;">
+                        <input @bind="searchValue" @bind:event="oninput" @onkeyup="SearchProducts" placeholder="Search" class="form-control float-right">
+                        @*<input type="text" name="table_search" class="form-control float-right" placeholder="Search">*@
+                        <div class="input-group-append">
+                            <button type="submit" class="btn btn-default">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-tools">
+                    @*<button type="button" class="btn btn-tool" data-card-widget="maximize">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>*@
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-tool" data-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-h text-lg"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right" role="menu" style="">
+                            <a href="admin/products/edit/0" class="dropdown-item">
+                                <i class="fas fa-plus-circle mr-2"></i>
+                                <span>Add Product</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <a href="/" class="btn btn-tool">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body p-0">
+                <div class="scrollable-content p-0">
+                    <ul class="products-list product-list-in-card pl-2 pr-2">
+                        @foreach (var product in products)
+                        {
+                            <li class="item @(product.IsActive ? "" : "bg-warning")">
+                                <div class="product-img">
+                                    <img src="@(string.IsNullOrEmpty(product.PhotoUrl) ? "/dist/img/imageplaceholder.jpg" : $"{product.PhotoUrl}?tr=w-50,h-50")" alt="Product Image" class="img-size-50">
+                                </div>
+                                <div class="product-info">
+                                    <div>
+                                        <span class="text-justify">
+                                            <span href="javascript:void(0)" class="product-title">
+                                                @product.Name
+                                            </span>
+                                            @if (product.Quantity > 0)
+                                            {
+                                                <span> [@product.Quantity]</span>
+                                            }
+                                        </span>
+
+                                        <div class="btn-group float-right mt-1">
+                                            <button type="button" class="btn btn-tool" data-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-h text-lg"></i>
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-right" role="menu" style="">
+                                                @if (product.IsActive)
+                                                {
+                                                    <a href="admin/products/addstock/@product.Id" class="dropdown-item">
+                                                        <i class="fas fa-plus-square mr-2"></i>
+                                                        <span>Add Stock</span>
+                                                    </a>
+                                                    <div class="dropdown-divider"></div>
+
+                                                    @if (product.Quantity > 0)
+                                                    {
+                                                        <a href="admin/products/deductstock/@product.Id" class="dropdown-item">
+                                                            <i class="fas fa-money-bill-alt mr-2"></i>
+                                                            <span>Deduct Stock</span>
+                                                        </a>
+                                                        <div class="dropdown-divider"></div>
+                                                    }
+                                                }
+                                                <a href="admin/products/stockupdates/@product.Id" class="dropdown-item">
+                                                    <i class="fas fa-list mr-2"></i>
+                                                    <span>Stock Updates</span>
+                                                </a>
+                                                <div class="dropdown-divider"></div>
+                                                <a href="admin/products/edit/@product.Id" class="dropdown-item">
+                                                    <i class="fas fa-edit mr-2"></i>
+                                                    <span>Edit Details</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="truncate-ellipsis">
+                                        <span class="product-description">
+                                            <span>Bp: <b>@string.Format("{0:n0}", product.BuyingPrice)</b></span>
+                                            <span> | </span>
+                                            <span>Sp: <b>@string.Format("{0:n0}", product.SellingPrice)</b></span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+            <!-- /.card-body -->
+            @if (loading)
+            {
+                <div class="overlay lightblue"><i class="fas fa-2x fa-sync-alt fa-spin"></i></div>
+            }
+
+            <div class="card-footer">
+                <div class="">
+                    <span class="description-percentage">
+                        <i class="fas fa-cubes"></i>
+                        <span id="date_filter">
+                            Total: <b>@products.Count</b>
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string searchValue;
+    private bool loading = true;
+    CurrentUser loggedInUser = new();
+    List<Product> allProducts = new();
+    List<Product> products = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user.Success)
+        {
+            loggedInUser = user.Value;
+        }
+
+        loading = true;
+
+        try
+        {
+            Task t1 = Task.Run(() => ListProducts());
+
+            await Task.WhenAll(t1);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ListProducts()
+    {
+        ProductHttpResult productHttpResult = await _productService.ListAsync();
+
+        if (productHttpResult.Success)
+        {
+            allProducts = productHttpResult.Products;
+            products = allProducts;
+        }
+        else
+            await _toastService.ShowToastAsync(productHttpResult.Message, ToastType.Error);
+    }
+
+    private void SearchProducts()
+    {
+        if (string.IsNullOrEmpty(searchValue))
+            products = allProducts;
+        else
+        {
+            searchValue = searchValue.ToLower();
+            var result = allProducts.Where(n =>
+            n.Name.ToLower().Contains(searchValue) || 
+            n.BuyingPrice != null && n.BuyingPrice.ToString().ToLower().Contains(searchValue) ||
+            n.SellingPrice != null && n.SellingPrice.ToString().ToLower().Contains(searchValue)).ToList();
+
+            if (result != null)
+                products = result;
+        }
+    }
+}

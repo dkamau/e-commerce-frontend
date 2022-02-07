@@ -1,0 +1,220 @@
+﻿@page "/admin/products/edit/{id:int}"
+@using System.Net.Http.Headers
+@using System.IO;
+@inject IJSRuntime _jsRuntime
+@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ProductService _productService
+@inject NavigationManager _navigationManager
+@inject ToastService _toastService
+
+<div class="row">
+    <!-- left column -->
+    <div class="col-md-12">
+        <!-- jquery validation -->
+        <div class="card card-outline card-primary">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-cubes  mr-2" />
+                    <span>Product Details</span>
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="maximize">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <a href="admin/products/" class="btn btn-tool">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </div>
+            <!-- /.card-header -->
+            <!-- form start -->
+            <EditForm Model="@product" OnValidSubmit="@CreateProduct">
+                <DataAnnotationsValidator />
+                <div class="card-body">
+                    <div class="form-group">
+                        <InputFile OnChange="@OnInputFileChange" style="display:none;" id="productImageFile" />
+                        <div class="row">
+                            <div class="col-auto">
+                                <div class="product-img">
+                                    <img src="@(string.IsNullOrEmpty(product.TempPhotoUrl) ? "/dist/img/imageplaceholder.jpg" : $"{product.TempPhotoUrl}")" alt="Product Image" class="img-size-edit-page">
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-sm btn-info" type="button" @onclick="@AddImage">
+                                    <i class="fas fa-plus-circle"></i>
+                                </button><p />
+                                <button class="btn btn-sm btn-danger" type="button" @onclick="@RemoveImage">
+                                    <i class="fas fa-minus-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Name">Product Name</label>
+                        <InputText @bind-Value="product.Name" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => product.Name)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="Description">Description</label>
+                        <InputTextArea @bind-Value="product.Description" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => product.Description)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="BuyingPrice">Buying Price</label>
+                        <InputNumber @bind-Value="product.BuyingPrice" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => product.BuyingPrice)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="SellingPrice">Selling Price</label>
+                        <InputNumber @bind-Value="product.SellingPrice" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => product.SellingPrice)" />
+                    </div>
+                    <div class="form-group clearfix">
+                        <div class="icheck-warning d-inline">
+                            <InputCheckbox @bind-Value="product.IsActive" type="checkbox" id="checkboxIsActive" checked="" />
+                            <label for="checkboxIsActive">Is Active </label>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.card-body -->
+                <div class="card-footer">
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="submit" class="btn btn-success btn-block @(loading == true ? "disabled" : "")">
+                                @if (loading)
+                                {
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                }
+                                else
+                                {
+                                    <span>Submit</span>
+                                }
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <a href="admin/products/" class="btn btn-danger btn-block">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+        <!-- /.card -->
+    </div>
+    <!--/.col (left) -->
+    <!-- right column -->
+    <div class="col-md-6">
+
+    </div>
+    <!--/.col (right) -->
+</div>
+<!-- /.row -->
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private CurrentUser loggedInUser = new();
+
+    private bool loading = false;
+    private bool uploadImage = false;
+    private Product product = new();
+    private MultipartFormDataContent imageContent = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user.Success)
+        {
+            loggedInUser = user.Value;
+        }
+
+        if (Id > 0)
+        {
+            ProductHttpResult productHttpResult = await _productService.GetAsync(Id);
+
+            if (productHttpResult.Success)
+            {
+                product = productHttpResult.Product;
+                product.TempPhotoUrl = product.PhotoUrl;
+            }
+            else
+                await _toastService.ShowToastAsync(productHttpResult.Message, ToastType.Error);
+        }
+    }
+
+    private async Task CreateProduct()
+    {
+        loading = true;
+
+        ProductHttpResult productHttpResult;
+
+        if (Id == 0)
+            productHttpResult = await _productService.CreateAsync(product);
+        else
+            productHttpResult = await _productService.UpdateAsync(product);
+
+        if (productHttpResult.Success)
+        {
+            await UploadImage(productHttpResult.Product.Id);
+            _navigationManager.NavigateTo("/admin/products");
+            await _toastService.ShowToastAsync($"{product.Name} has been updated successfully.", ToastType.Success);
+        }
+        else
+        {
+            await _toastService.ShowToastAsync(productHttpResult.Message, ToastType.Error);
+        }
+
+        loading = false;
+    }
+
+    private async Task AddImage()
+    {
+        await _jsRuntime.InvokeVoidAsync("triggerProductImageUpload");
+    }
+
+    private void RemoveImage()
+    {
+        uploadImage = false;
+        product.TempPhotoUrl = "/dist/img/imageplaceholder.jpg";
+        product.PhotoUrl = null;
+    }
+
+    private async Task UploadImage(int productId)
+    {
+        if (uploadImage)
+        {
+            ProductHttpResult productHttpResult = await _productService.UploadImageAsync(productId, imageContent);
+        }
+    }
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        long maxFileSize = 1000000;
+        try
+        {
+            imageContent = new MultipartFormDataContent();
+            IBrowserFile file = e.GetMultipleFiles(1)[0];
+
+            var fileIsValid = FileHelper.FileIsValid(file);
+
+            if (!fileIsValid.Key)
+            {
+                await _toastService.ShowToastAsync(fileIsValid.Value, ToastType.Error);
+                return;
+            }
+
+            product.TempPhotoUrl = $"data:image/gif;base64,{await file.ConvertToBase64()}";
+
+            var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+            imageContent.Add(content: fileContent, name: "\"file\"", fileName: file.Name);
+            uploadImage = true;
+        }
+        catch (Exception ex)
+        {
+            await _toastService.ShowToastAsync(ex.Message, ToastType.Error);
+        }
+    }
+}

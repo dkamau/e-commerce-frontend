@@ -1,0 +1,134 @@
+﻿@page "/authentication/signup"
+@inject AuthenticationService _authenticationService
+@inject NavigationManager _navigationManager
+@inject ToastService _toastService
+@attribute [AllowAnonymous]
+
+<div class="card-body">
+    <div class="scrollable-content p-0">
+        <p class="login-box-msg">Create your account</p>
+
+        <EditForm Model="@user" OnValidSubmit="@CreateAccount">
+            <DataAnnotationsValidator />
+
+            <div class="form-group  mb-3">
+                <div class="input-group">
+                    <InputText @bind-Value="user.FirstName" class="form-control" placeholder="Your First Name" />
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-user"></span>
+                        </div>
+                    </div>
+                </div>
+                <ValidationMessage For="@(() => user.FirstName)" />
+            </div>
+
+            <div class="form-group  mb-3">
+                <div class="input-group">
+                    <InputText @bind-Value="user.LastName" class="form-control" placeholder="Your Last Name" />
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-user"></span>
+                        </div>
+                    </div>
+                </div>
+                <ValidationMessage For="@(() => user.LastName)" />
+            </div>
+
+            <div class="form-group  mb-3">
+                <div class="input-group">
+                    <InputText @bind-Value="user.Email" class="form-control" placeholder="Your Email Address" />
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-envelope"></span>
+                        </div>
+                    </div>
+                </div>
+                <ValidationMessage For="@(() => user.Email)" />
+            </div>
+
+            <div class="form-group  mb-3">
+                <div class="input-group">
+                    <InputText @bind-Value="user.PhoneNumber" class="form-control" placeholder="Your Phone Number" />
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-mobile"></span>
+                        </div>
+                    </div>
+                </div>
+                <ValidationMessage For="@(() => user.Email)" />
+            </div>
+
+            <div class="form-group  mb-3">
+                <div class="input-group">
+                    <InputText @bind-Value="user.Password" class="form-control" placeholder="Password" type="password" />
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-lock"></span>
+                        </div>
+                    </div>
+                </div>
+                <ValidationMessage For="@(() => user.Password)" />
+            </div>
+
+            <div class="form-group  mb-3">
+                <div class="input-group">
+                    <InputText @bind-Value="user.ConfirmPassword" class="form-control" placeholder="Confirm Password" type="password" />
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-lock"></span>
+                        </div>
+                    </div>
+                </div>
+                <ValidationMessage For="@(() => user.ConfirmPassword)" />
+            </div>
+
+            <div class="row">
+                <!-- /.col -->
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary btn-block @(loading == true ? "disabled" : "")">
+                        @if (loading)
+                        {
+                            <i class="fas fa-spinner fa-spin"></i>
+                        }
+                        else
+                        {
+                            <span>Create Account</span>
+                        }
+                    </button>
+                </div>
+                <!-- /.col -->
+            </div>
+        </EditForm>
+        <hr />
+        <div class="social-auth-links text-center mt-2 mb-3">
+            <a href="/authentication/login">
+                <i class="fas fa-sign-in-alt mr-2"></i> I already have an account
+            </a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool loading = false;
+    private UserSignUp user = new();
+
+    private async Task CreateAccount()
+    {
+        loading = true;
+
+        AuthenticationResult authenticationResult = await _authenticationService.Signup(user);
+
+        if (authenticationResult.Success)
+        {
+            _navigationManager.NavigateTo("/authentication/login");
+            await _toastService.ShowToastAsync($"Hi {user.FirstName}, Your account has been created successfully. Please Login.", ToastType.Success);
+        }
+        else
+        {
+            await _toastService.ShowToastAsync(authenticationResult.Message, ToastType.Error);
+        }
+
+        loading = false;
+    }
+}

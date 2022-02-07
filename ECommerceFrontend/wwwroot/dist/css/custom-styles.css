@@ -1,0 +1,106 @@
+﻿.main-footer {
+/*    background-color: #f4f6f9;
+    border-top: 0px solid #dee2e6;*/
+    color: #869099;
+    padding: 1rem;
+}
+
+.validation-message {
+    color: red;
+    font-size: 12px;
+    padding-top: 4px;
+}
+
+.scrollable-card {
+    height:78vh;
+}
+
+.scrollable-content {
+    -webkit-transform: translate(0, 0);
+    transform: translate(0, 0);
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+}
+
+.img-size-edit-page {
+    width:auto;
+    height:78px;
+}
+
+::-webkit-scrollbar {
+    width: 0; /* Remove scrollbar space */
+    background: transparent; /* Optional: just make scrollbar invisible */
+}
+
+/* Optional: show position indicator in red */
+::-webkit-scrollbar-thumb {
+    background: #FF0000;
+}
+
+.truncate-ellipsis {
+    display: table;
+    table-layout: fixed;
+    width: 100%;
+    white-space: nowrap;
+}
+    .truncate-ellipsis > * {
+        display: table-cell;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+
+.shopping-card {
+    position: relative;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border: 1px solid rgba(0, 0, 0, .125);
+    border-radius: .1875rem
+}
+
+.shopping-card-img-actions {
+    position: relative
+}
+
+.shopping-card-body {
+    -ms-flex: 1 1 auto;
+    flex: 1 1 auto;
+    padding: 1.25rem;
+    text-align: center
+}
+
+.shopping-card-img {
+    height: 250px
+}
+
+.star {
+    color: red
+}
+
+.bg-cart {
+    background-color: orange;
+    color: #fff
+}
+
+    .bg-cart:hover {
+        border: 2px solid red;
+        color: #fff
+    }
+
+.bg-buy {
+    background-color: green;
+    color: #fff;
+    padding-right: 29px
+}
+
+    .bg-buy:hover {
+        color: #fff
+    }

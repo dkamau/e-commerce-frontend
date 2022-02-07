@@ -1,0 +1,168 @@
+﻿@page "/"
+@using ECommerceFrontend.Components
+@inject JSService _jsService
+@inject ProtectedSessionStorage _protectedSessionStorage
+@inject ProtectedLocalStorage  _protectedLocalStorage
+@inject AuthenticationService _authenticationService
+@inject ProductService _productService;
+@inject ToastService _toastService
+@attribute [AllowAnonymous]
+
+<div class="row pb-3 pt-3">
+    <div class="col-md-8 offset-md-2">
+        <form action="simple-results.html">
+            <div class="input-group">
+                <input @bind="searchValue" @bind:event="oninput" @onkeyup="SearchProducts" type="search" class="form-control form-control-lg" placeholder="Find products...">
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-lg btn-default">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Small boxes (Stat box) -->
+<AuthorizeView>
+    <Authorized>
+        <div class="row">
+            <div class="col-sm-12 col-md-12">
+                @if (!loggedInUser.EmailIsConfirmed)
+                {
+                    <div class="alert alert-warning alert-dismissible">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                        <h5><i class="icon fas fa-info"></i> Confirm Your Account!</h5>
+                        Please check your email to confirm your account. <a href="#" id="lnk-resend" @onclick="ResendConfirmationEmail">Resend confirmation link</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+
+    </NotAuthorized>
+</AuthorizeView>
+
+
+<div class="row">
+    @foreach (var product in products)
+    {
+        <div class="col-md-4 mt-2">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-img-actions"> <img src="@(string.IsNullOrEmpty(product.PhotoUrl) ? "/dist/img/imageplaceholder.jpg" : $"{product.PhotoUrl}?tr=w-286,h-180")" class="card-img img-fluid" width="96" height="350" alt=""> </div>
+                </div>
+                <div class="card-body bg-light text-center">
+                    <div class="mb-2">
+                        <h6 class="font-weight-semibold mb-2"> <a href="#" class="text-default mb-2" data-abc="true">@product.Name</a> </h6> <a href="#" class="text-muted" data-abc="true">@product.Description</a>
+                    </div>
+                    <h3 class="mb-0 font-weight-semibold">Kes. @string.Format("{0:N2}/=", product.SellingPrice)</h3>
+                    <div> <i class="fa fa-star star"></i> <i class="fa fa-star star"></i> <i class="fa fa-star star"></i> <i class="fa fa-star star"></i> </div>
+                    <div class="text-muted mb-3">34 reviews</div> <button type="button" class="btn bg-cart" @onclick="() => UpdateCart(product.Id)"><i class="fa fa-cart-plus mr-2"></i> Add to cart</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    CurrentUser loggedInUser = new();
+    private string searchValue;
+    private bool loading = true;
+    List<Product> allProducts = new();
+    List<Product> products = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user.Success)
+        {
+            loggedInUser = user.Value;
+        }
+
+        loading = true;
+
+        try
+        {
+            Task t1 = Task.Run(() => ListProducts());
+
+            await Task.WhenAll(t1);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ListProducts()
+    {
+        ProductHttpResult productHttpResult = await _productService.ListAsync();
+
+        if (productHttpResult.Success)
+        {
+            allProducts = productHttpResult.Products;
+            products = allProducts;
+        }
+        else
+            await _toastService.ShowToastAsync(productHttpResult.Message, ToastType.Error);
+    }
+
+    private void SearchProducts()
+    {
+        if (string.IsNullOrEmpty(searchValue))
+            products = allProducts;
+        else
+        {
+            searchValue = searchValue.ToLower();
+            var result = allProducts.Where(n =>
+            n.Name.ToLower().Contains(searchValue) ||
+            n.BuyingPrice != null && n.BuyingPrice.ToString().ToLower().Contains(searchValue) ||
+            n.SellingPrice != null && n.SellingPrice.ToString().ToLower().Contains(searchValue)).ToList();
+
+            if (result != null)
+                products = result;
+        }
+    }
+
+    public async Task UpdateCart(int productId)
+    {
+        Product product = allProducts.Where(n => n.Id == productId).FirstOrDefault();
+        List<Product> products = new List<Product>();
+        var cartItems = await _protectedLocalStorage.GetAsync<List<Product>>(StorageConstants.CartItems);
+        if (cartItems.Success)
+        {
+            products = cartItems.Value;
+            products.Add(product);
+        }
+        else
+        {
+            products.Add(product);
+        }
+
+        await _protectedLocalStorage.SetAsync(StorageConstants.CartItems, products);
+        await _jsService.UpdateCart();
+    }
+
+    public async Task ResendConfirmationEmail()
+    {
+        await DeleteLink();
+        AuthenticationResult authenticationResult = await _authenticationService.ResendConfirmationLink(loggedInUser.Email);
+
+        if (authenticationResult.Success)
+        {
+            await _toastService.ShowToastAsync($"Sent! Please check both your inbox and junk mail for the confirmation link.", ToastType.Info);
+        }
+        else
+        {
+            await _toastService.ShowToastAsync(authenticationResult.Message, ToastType.Error);
+        }
+    }
+
+    public async Task DeleteLink()
+    {
+        await _jsService.RemoveElement($"lnk-resend");
+        await _toastService.ShowToastAsync($"Sending email...", ToastType.Info);
+    }
+}
+

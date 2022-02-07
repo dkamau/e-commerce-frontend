@@ -1,0 +1,137 @@
+﻿@page "/admin/products/addstock/{id:int}"
+@inject IJSRuntime _jsRuntime
+@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ProductService _productService
+@inject ProductStockUpdateService _productStockUpdateService
+@inject NavigationManager _navigationManager
+@inject ToastService _toastService
+
+<div class="row">
+    <!-- left column -->
+    <div class="col-md-12">
+        <!-- jquery validation -->
+        <div class="card card-outline card-primary">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-cubes  mr-2" />
+                    <span>Add Stock</span>
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="maximize">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <a href="admin/products/" class="btn btn-tool">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </div>
+            <!-- /.card-header -->
+            <!-- form start -->
+            <EditForm Model="@productStockUpdate" OnValidSubmit="@UpdateStock">
+                <DataAnnotationsValidator />
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="Name">Product</label>
+                        <input value="@product.Name" class="form-control" placeholder="" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label for="Name">Quantity</label>
+                        <InputNumber @bind-Value="productStockUpdate.Quantity" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => productStockUpdate.Quantity)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="Name">Buying Price</label>
+                        <InputNumber @bind-Value="productStockUpdate.Price" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => productStockUpdate.Price)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="Name">Total</label>
+                        <input value="@productStockUpdate.Total" class="form-control" placeholder="" readonly />
+                    </div>
+                </div>
+                <!-- /.card-body -->
+                <div class="card-footer">
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="submit" class="btn btn-success btn-block @(loading == true ? "disabled" : "")">
+                                @if (loading)
+                                {
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                }
+                                else
+                                {
+                                    <span>Submit</span>
+                                }
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <a href="admin/products/" class="btn btn-danger btn-block">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+        <!-- /.card -->
+    </div>
+    <!--/.col (left) -->
+    <!-- right column -->
+    <div class="col-md-6">
+
+    </div>
+    <!--/.col (right) -->
+</div>
+<!-- /.row -->
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private CurrentUser loggedInUser = new();
+
+    private bool loading = false;
+    Product product = new();
+    private ProductStockUpdate productStockUpdate = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user.Success)
+        {
+            loggedInUser = user.Value;
+        }
+
+        if (Id > 0)
+        {
+            ProductHttpResult productHttpResult = await _productService.GetAsync(Id);
+
+            if (productHttpResult.Success)
+            {
+                product = productHttpResult.Product;
+                productStockUpdate.ProductId = product.Id;
+                productStockUpdate.Price = product.BuyingPrice == null ? 0 : (decimal)product.BuyingPrice;
+            }
+            else
+                await _toastService.ShowToastAsync(productHttpResult.Message, ToastType.Error);
+        }
+    }
+
+    private async Task UpdateStock()
+    {
+        loading = true;
+
+        ProductStockUpdateHttpResult stockUpdateHttpResult = await _productStockUpdateService.CreateAsync(productStockUpdate, ProductStockUpdateType.Addition);
+
+        if (stockUpdateHttpResult.Success)
+        {
+            _navigationManager.NavigateTo("/admin/products");
+            string message = productStockUpdate.Quantity == 1 ? $"{productStockUpdate.Quantity} item has been added to {product.Name}'s stock." : $"{productStockUpdate.Quantity} items have been added to {product.Name}'s stock.";
+
+            await _toastService.ShowToastAsync(message, ToastType.Success);
+        }
+        else
+        {
+            await _toastService.ShowToastAsync(stockUpdateHttpResult.Message, ToastType.Error);
+        }
+
+        loading = false;
+    }
+}

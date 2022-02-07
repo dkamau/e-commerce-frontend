@@ -1,0 +1,73 @@
+﻿@page "/authentication/confirmaccount/{id}"
+@inject AuthenticationService _authenticationService
+@inject NavigationManager _navigationManager
+@attribute [AllowAnonymous]
+
+<div class="card-body">
+    @if (!loading)
+    {
+        <h5 class="text-center">@title</h5>
+        <hr/>
+        <p class="login-box-msg">@message</p>
+        <div class="row">
+            <div class="col-12">
+                @if (user == null)
+                {
+                    <a href="/authentication/login" class="btn btn-info btn-block">Login anyway</a>
+                }
+                else
+                {
+                    <a href="/authentication/login" class="btn btn-info btn-block">Proceed to login</a>
+                }
+            </div>
+            <!-- /.col -->
+        </div>
+    }
+    else
+    {
+        <h5 class="login-box-msg">Just a sec...</h5>
+    }
+</div>
+@if (loading)
+{
+    <div class="overlay dark"><i class="fas fa-2x fa-sync-alt fa-spin"></i></div>
+}
+<!-- /.card-body -->
+
+@code {
+    [Parameter]
+    public string id { get; set; }
+
+    private bool loading = true;
+    private CurrentUser user = null;
+    private string title = "";
+    private string message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ConfirmUserAccount();
+    }
+
+    private async Task ConfirmUserAccount()
+    {
+        loading = true;
+
+        AuthenticationResult authenticationResult = await _authenticationService.ConfirmAccount(id);
+
+        if (authenticationResult.Success)
+        {
+            user = authenticationResult.CurrentUser;
+            title = "Account Confirmed!";
+            message = $"Hi {user.FirstName}, Thank you for confirming your account. click the button below to login and continue shopping.";
+        }
+        else
+        {
+            title = "Confirmation Error!";
+            message = authenticationResult.Message;
+        }
+
+        loading = false;
+    }
+}
+
+

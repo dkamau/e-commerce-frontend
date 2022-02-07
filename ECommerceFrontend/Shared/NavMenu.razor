@@ -1,0 +1,74 @@
+﻿@using ECommerceFrontend.Components
+@using ECommerceFrontend.Constants
+@inject ProtectedSessionStorage _protectedSessionStorage
+
+<!-- Main Sidebar Container -->
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="/" class="brand-link">
+        <img src="dist/img/bet-shop-logo.png" alt="BET Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light"><b>BET</b> Shop</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar user panel (optional) -->
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                    <div class="image">
+                        <img src="dist/img/avatar2.png" class="img-circle elevation-2" alt="User Image">
+                    </div>
+                    <div class="info">
+                        <a href="#" class="d-block">
+                            @loggedInUser.FirstName @loggedInUser.LastName
+                        </a>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                <!-- Add icons to the links using the .nav-icon class with font-awesome or any other icon font library -->
+
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                                <i class="nav-icon fas fa-shopping-bag"></i>
+                                <p>
+                                   Continue Shopping
+                                </p>
+                            </NavLink>
+                        </li>
+                        <NavMenuItem LinkTo="admin/products" Icon="cubes" Label="Products" />
+                    </Authorized>
+                    <NotAuthorized>
+                        <NavMenuItem LinkTo="authentication/login" Icon="cogs" Label="Please Login" />
+                    </NotAuthorized>
+                </AuthorizeView>
+            </ul>
+        </nav>
+        <!-- /.sidebar-menu -->
+    </div>
+    <!-- /.sidebar -->
+</aside>
+
+
+
+@code {
+
+    private CurrentUser loggedInUser = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var sessionUser = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (sessionUser.Success)
+        {
+            loggedInUser = sessionUser.Value;
+        }
+    }
+}
