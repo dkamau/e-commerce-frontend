@@ -26,7 +26,7 @@
 <!-- Small boxes (Stat box) -->
 <AuthorizeView>
     <Authorized>
-        <div class="row">
+        @*<div class="row">
             <div class="col-sm-12 col-md-12">
                 @if (!loggedInUser.EmailIsConfirmed)
                 {
@@ -37,7 +37,7 @@
                     </div>
                 }
             </div>
-        </div>
+        </div>*@
     </Authorized>
     <NotAuthorized>
 
@@ -59,7 +59,7 @@
                     </div>
                     <h3 class="mb-0 font-weight-semibold">Kes. @string.Format("{0:N2}/=", product.SellingPrice)</h3>
                     <div> <i class="fa fa-star star"></i> <i class="fa fa-star star"></i> <i class="fa fa-star star"></i> <i class="fa fa-star star"></i> </div>
-                    <div class="text-muted mb-3">34 reviews</div> <button type="button" class="btn bg-cart" @onclick="() => UpdateCart(product.Id)"><i class="fa fa-cart-plus mr-2"></i> Add to cart</button>
+                    <div class="text-muted mb-3">25 reviews</div> <button type="button" class="btn bg-cart" @onclick="() => UpdateCart(product.Id)"><i class="fa fa-cart-plus mr-2"></i> Add to cart</button>
                 </div>
             </div>
         </div>
@@ -72,6 +72,7 @@
     private bool loading = true;
     List<Product> allProducts = new();
     List<Product> products = new();
+    Random random = new Random();
 
     protected override async Task OnInitializedAsync()
     {
