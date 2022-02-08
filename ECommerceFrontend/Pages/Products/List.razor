@@ -1,6 +1,6 @@
 ﻿@page "/admin/products"
 @inject ProductService _productService;
-@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ISessionStorageService  _sessionStorage
 @inject ToastService _toastService
 
 <div class="row">
@@ -146,10 +146,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-        if (user.Success)
+        var user = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user != null)
         {
-            loggedInUser = user.Value;
+            loggedInUser = user;
         }
 
         loading = true;

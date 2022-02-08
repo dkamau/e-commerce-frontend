@@ -1,7 +1,7 @@
 ﻿@page "/checkout"
 @inject JSService _jsService
-@inject ProtectedLocalStorage  _protectedLocalStorage
-@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ILocalStorageService  _localStorage
+@inject ISessionStorageService  _sessionStorage
 @inject CheckoutService _checkoutService
 @inject NavigationManager _navigationManager
 @inject ToastService _toastService
@@ -145,10 +145,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-        if (user.Success)
+        var user = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user != null)
         {
-            loggedInUser = user.Value;
+            loggedInUser = user;
             order.UserId = loggedInUser.UserId;
             order.FirstName = loggedInUser.FirstName;
             order.LastName = loggedInUser.LastName;
@@ -160,10 +160,10 @@
 
     public async Task GetChartItems()
     {
-        var selectedCartItems = await _protectedLocalStorage.GetAsync<List<Product>>(StorageConstants.CartItems);
-        if (selectedCartItems.Success)
+        var selectedCartItems = await _localStorage.GetItemAsync<List<Product>>(StorageConstants.CartItems);
+        if (selectedCartItems != null)
         {
-            cartItems = selectedCartItems.Value;
+            cartItems = selectedCartItems;
         }
     }
 
@@ -172,7 +172,7 @@
         var item = cartItems.Where(n => n.Name == name).FirstOrDefault();
         cartItems.Remove(item);
         await _jsService.RemoveItemFromCart();
-        await _protectedLocalStorage.SetAsync(StorageConstants.CartItems, cartItems);
+        await _localStorage.SetItemAsync(StorageConstants.CartItems, cartItems);
     }
 
     private async Task CreateOrder()
@@ -187,7 +187,7 @@
             _navigationManager.NavigateTo("/");
             await _toastService.ShowToastAsync($"Your order has been placed successfully.\nPlease check your email for the order number and order details.", ToastType.Success);
             await _jsService.RemoveItemFromCart(cartItems.Count);
-            await _protectedLocalStorage.SetAsync(StorageConstants.CartItems, new List<Product>());
+            await _localStorage.SetItemAsync(StorageConstants.CartItems, new List<Product>());
         }
         else
         {

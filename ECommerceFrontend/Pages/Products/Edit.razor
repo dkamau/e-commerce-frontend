@@ -2,7 +2,7 @@
 @using System.Net.Http.Headers
 @using System.IO;
 @inject IJSRuntime _jsRuntime
-@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ISessionStorageService  _sessionStorage
 @inject ProductService _productService
 @inject NavigationManager _navigationManager
 @inject ToastService _toastService
@@ -123,10 +123,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-        if (user.Success)
+        var user = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user != null)
         {
-            loggedInUser = user.Value;
+            loggedInUser = user;
         }
 
         if (Id > 0)

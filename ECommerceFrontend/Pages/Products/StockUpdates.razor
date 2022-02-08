@@ -1,7 +1,7 @@
 ﻿@page "/admin/products/stockupdates/{id:int}"
 @using ECommerceFrontend.Enums
 @using Humanizer 
-@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ISessionStorageService  _sessionStorage
 @inject ProductService _productService
 @inject ProductStockUpdateService _productStockUpdateService
 @inject NavigationManager _navigationManager
@@ -118,10 +118,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-        if (user.Success)
+        var user = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user != null)
         {
-            loggedInUser = user.Value;
+            loggedInUser = user;
         }
 
         ProductHttpResult productHttpResult = await _productService.GetAsync(Id);

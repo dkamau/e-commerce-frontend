@@ -1,5 +1,5 @@
 ﻿@page "/authentication/login"
-@inject ProtectedLocalStorage  _protectedLocalStorage
+@inject ILocalStorageService  _localStorage
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject NavigationManager _navigationManager
 @inject ToastService _toastService
@@ -80,16 +80,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var email = await _protectedLocalStorage.GetAsync<string>(StorageConstants.StoredEmail);
-        if (email.Success)
+        var email = await _localStorage.GetItemAsync<string>(StorageConstants.StoredEmail);
+        if (!string.IsNullOrEmpty(email))
         {
-            user.Email = email.Value;
+            user.Email = email;
             user.RememberMe = true;
         }
 
-        var password = await _protectedLocalStorage.GetAsync<string>(StorageConstants.StoredPassword);
-        if (password.Success)
-            user.Password = password.Value;
+        var password = await _localStorage.GetItemAsync<string>(StorageConstants.StoredPassword);
+        if (string.IsNullOrEmpty(password))
+            user.Password = password;
     }
 
     private async Task ValidateUser()

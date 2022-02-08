@@ -1,6 +1,6 @@
 ﻿@page "/admin/products/deductstock/{id:int}"
 @inject IJSRuntime _jsRuntime
-@inject ProtectedSessionStorage  _protectedSessionStorage
+@inject ISessionStorageService  _sessionStorage
 @inject ProductService _productService
 @inject ProductStockUpdateService _productStockUpdateService
 @inject NavigationManager _navigationManager
@@ -97,10 +97,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-        if (user.Success)
+        var user = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user != null)
         {
-            loggedInUser = user.Value;
+            loggedInUser = user;
         }
 
         if (Id > 0)

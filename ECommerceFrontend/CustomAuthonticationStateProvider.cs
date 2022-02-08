@@ -1,8 +1,9 @@
-﻿using ECommerceFrontend.Constants;
+﻿using Blazored.LocalStorage;
+using Blazored.SessionStorage;
+using ECommerceFrontend.Constants;
 using ECommerceFrontend.Models.Authentication;
 using ECommerceFrontend.Services;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -10,16 +11,16 @@ namespace ECommerceFrontend
 {
     public class CustomAuthonticationStateProvider : AuthenticationStateProvider
     {
-        ProtectedSessionStorage _protectedSessionStorage;
-        ProtectedLocalStorage _protectedLocalStorage;
+        ISessionStorageService _sessionStorage;
+        ILocalStorageService _localStorage;
         AuthenticationService _authenticationService;
         public CustomAuthonticationStateProvider(
-            ProtectedSessionStorage protectedSessionStorage, 
-            ProtectedLocalStorage protectedLocalStorage,
+            ISessionStorageService sessionStorage, 
+            ILocalStorageService localStorage,
             AuthenticationService authenticationService)
         {
-            _protectedSessionStorage = protectedSessionStorage;
-            _protectedLocalStorage = protectedLocalStorage;
+            _sessionStorage = sessionStorage;
+            _localStorage = localStorage;
             _authenticationService = authenticationService;
         }
 
@@ -27,10 +28,10 @@ namespace ECommerceFrontend
         {
             var identity = new ClaimsIdentity();
 
-            var sessionUser = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-            if (sessionUser.Success)
+            var sessionUser = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+            if (sessionUser != null)
             {
-                CurrentUser loggedInUser = sessionUser.Value;
+                CurrentUser loggedInUser = sessionUser;
                 identity = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.Email, loggedInUser.Email),
@@ -50,7 +51,7 @@ namespace ECommerceFrontend
             if (authenticationResult.Success)
             {
                 CurrentUser loggedInUser = authenticationResult.CurrentUser;
-                await _protectedSessionStorage.SetAsync(StorageConstants.StoredUser, loggedInUser);
+                await _sessionStorage.SetItemAsync(StorageConstants.StoredUser, loggedInUser);
                 await SetRememberMe(email, password, rememberMe);
 
                 SetClaims(email);
@@ -63,7 +64,7 @@ namespace ECommerceFrontend
 
         public async Task LogoutUser()
         {
-            await _protectedSessionStorage.DeleteAsync(StorageConstants.StoredUser);
+            await _sessionStorage.RemoveItemAsync(StorageConstants.StoredUser);
             var user = new ClaimsPrincipal();
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
         }
@@ -84,13 +85,13 @@ namespace ECommerceFrontend
         {
             if (rememberMe)
             {
-                await _protectedLocalStorage.SetAsync(StorageConstants.StoredEmail, email);
-                await _protectedLocalStorage.SetAsync(StorageConstants.StoredPassword, password);
+                await _localStorage.SetItemAsync(StorageConstants.StoredEmail, email);
+                await _localStorage.SetItemAsync(StorageConstants.StoredPassword, password);
             }
             else
             {
-                await _protectedLocalStorage.DeleteAsync(StorageConstants.StoredEmail);
-                await _protectedLocalStorage.DeleteAsync(StorageConstants.StoredPassword);
+                await _localStorage.RemoveItemAsync(StorageConstants.StoredEmail);
+                await _localStorage.RemoveItemAsync(StorageConstants.StoredPassword);
             }
         }
     }

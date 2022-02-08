@@ -1,6 +1,6 @@
 ﻿@using ECommerceFrontend.Components
 @using ECommerceFrontend.Constants
-@inject ProtectedSessionStorage _protectedSessionStorage
+@inject ISessionStorageService _sessionStorage
 
 <!-- Main Sidebar Container -->
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
@@ -65,10 +65,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var sessionUser = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-        if (sessionUser.Success)
+        var sessionUser = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (sessionUser != null)
         {
-            loggedInUser = sessionUser.Value;
+            loggedInUser = sessionUser;
         }
     }
 }

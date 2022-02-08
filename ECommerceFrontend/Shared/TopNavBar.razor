@@ -1,5 +1,5 @@
-﻿@inject ProtectedSessionStorage _protectedSessionStorage
-@inject ProtectedLocalStorage _protectedLocalStorage
+﻿@inject ISessionStorageService _sessionStorage
+@inject ILocalStorageService _localStorage
 @inject NavigationManager _navigationManager
 @inject AuthenticationStateProvider _authenticationStateProvider
 <!-- Navbar -->
@@ -64,17 +64,17 @@
 
     public async Task GetChartItems()
     {
-        var cartItems = await _protectedLocalStorage.GetAsync<List<Product>>(StorageConstants.CartItems);
-        if (cartItems.Success)
+        var cartItems = await _localStorage.GetItemAsync<List<Product>>(StorageConstants.CartItems);
+        if (cartItems != null)
         {
-            cartCount = cartItems.Value.Count;
+            cartCount = cartItems.Count;
         }
     }
 
     private async Task LogOut()
     {
         await ((CustomAuthonticationStateProvider)_authenticationStateProvider).LogoutUser();
-        await _protectedSessionStorage.DeleteAsync(StorageConstants.StoredUser);
+        await _sessionStorage.RemoveItemAsync(StorageConstants.StoredUser);
         _navigationManager.NavigateTo("/");
     }
 }

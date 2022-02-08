@@ -1,5 +1,5 @@
 ﻿@using ECommerceFrontend.Constants;
-@inject ProtectedSessionStorage _protectedSessionStorage
+@inject ISessionStorageService _sessionStorage
 @inject NavigationManager _navigationManager
 <!-- Navbar -->
 <nav class="main-header navbar navbar-expand navbar-white navbar-light">
@@ -76,16 +76,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var sessionUser = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-        if (sessionUser.Success)
+        var sessionUser = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (sessionUser != null)
         {
-            loggedInUser = sessionUser.Value;
+            loggedInUser = sessionUser;
         }
     }
 
     private async Task LogOut()
     {
-        await _protectedSessionStorage.DeleteAsync(StorageConstants.StoredUser);
+        await _sessionStorage.RemoveItemAsync(StorageConstants.StoredUser);
         _navigationManager.NavigateTo("authentication/login");
     }
 }

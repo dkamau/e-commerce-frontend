@@ -1,8 +1,8 @@
 ﻿@page "/"
 @using ECommerceFrontend.Components
 @inject JSService _jsService
-@inject ProtectedSessionStorage _protectedSessionStorage
-@inject ProtectedLocalStorage  _protectedLocalStorage
+@inject ISessionStorageService _sessionStorage;
+@inject ILocalStorageService _localStorage;
 @inject AuthenticationService _authenticationService
 @inject ProductService _productService;
 @inject ToastService _toastService
@@ -27,17 +27,17 @@
 <AuthorizeView>
     <Authorized>
         @*<div class="row">
-            <div class="col-sm-12 col-md-12">
-                @if (!loggedInUser.EmailIsConfirmed)
-                {
-                    <div class="alert alert-warning alert-dismissible">
-                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                        <h5><i class="icon fas fa-info"></i> Confirm Your Account!</h5>
-                        Please check your email to confirm your account. <a href="#" id="lnk-resend" @onclick="ResendConfirmationEmail">Resend confirmation link</a>
-                    </div>
-                }
-            </div>
-        </div>*@
+                <div class="col-sm-12 col-md-12">
+                    @if (!loggedInUser.EmailIsConfirmed)
+                    {
+                        <div class="alert alert-warning alert-dismissible">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            <h5><i class="icon fas fa-info"></i> Confirm Your Account!</h5>
+                            Please check your email to confirm your account. <a href="#" id="lnk-resend" @onclick="ResendConfirmationEmail">Resend confirmation link</a>
+                        </div>
+                    }
+                </div>
+            </div>*@
     </Authorized>
     <NotAuthorized>
 
@@ -85,7 +85,7 @@
                 </div>
             </div>
         }
-       
+
     }
 </div>
 
@@ -99,10 +99,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-        if (user.Success)
+        var user = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+
+        if (user != null)
         {
-            loggedInUser = user.Value;
+            loggedInUser = user;
         }
 
         loading = true;
@@ -153,10 +154,10 @@
     {
         Product product = allProducts.Where(n => n.Id == productId).FirstOrDefault();
         List<Product> products = new List<Product>();
-        var cartItems = await _protectedLocalStorage.GetAsync<List<Product>>(StorageConstants.CartItems);
-        if (cartItems.Success)
+        var cartItems = await _localStorage.GetItemAsync<List<Product>>(StorageConstants.CartItems);
+        if (cartItems != null)
         {
-            products = cartItems.Value;
+            products = cartItems;
             products.Add(product);
         }
         else
@@ -164,7 +165,7 @@
             products.Add(product);
         }
 
-        await _protectedLocalStorage.SetAsync(StorageConstants.CartItems, products);
+        await _localStorage.SetItemAsync(StorageConstants.CartItems, products);
         await _jsService.UpdateCart();
     }
 

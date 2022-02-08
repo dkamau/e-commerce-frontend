@@ -1,6 +1,6 @@
-﻿using ECommerceFrontend.Constants;
+﻿using Blazored.SessionStorage;
+using ECommerceFrontend.Constants;
 using ECommerceFrontend.Models.Authentication;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Newtonsoft.Json;
 using System;
 using System.Net;
@@ -13,11 +13,11 @@ namespace ECommerceFrontend.Services
 {
     public class HttpService
     {
-        ProtectedSessionStorage _protectedSessionStorage;
+        ISessionStorageService _sessionStorage;
         HttpClient httpClient;
-        public HttpService(ProtectedSessionStorage protectedSessionStorage)
+        public HttpService(ISessionStorageService sessionStorage)
         {
-            _protectedSessionStorage = protectedSessionStorage;
+            _sessionStorage = sessionStorage;
         }
 
         public async Task<HttpResponse> UploadAsync(string endpoint, MultipartFormDataContent data)
@@ -169,10 +169,10 @@ namespace ECommerceFrontend.Services
             httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(backendUrl);
 
-            var sessionUser = await _protectedSessionStorage.GetAsync<CurrentUser>(StorageConstants.StoredUser);
-            if (sessionUser.Success)
+            var sessionUser = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+            if (sessionUser != null)
             {
-                CurrentUser loggedInUser = sessionUser.Value;
+                CurrentUser loggedInUser = sessionUser;
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loggedInUser.Token);
             }
         }

@@ -1,3 +1,5 @@
+using Blazored.LocalStorage;
+using Blazored.SessionStorage;
 using ECommerceFrontend.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -24,9 +26,9 @@ namespace ECommerceFrontend
         {
             services.AddRazorPages();
             services.AddServerSideBlazor();
+            services.AddBlazoredSessionStorage();
+            services.AddBlazoredLocalStorage();
             services.AddScoped<AuthenticationStateProvider, CustomAuthonticationStateProvider>();
-            services.AddScoped<ProtectedLocalStorage>();
-            services.AddScoped<ProtectedSessionStorage>();
             services.AddScoped<HttpService>();
             services.AddScoped<ToastService>();
             services.AddScoped<JSService>();
